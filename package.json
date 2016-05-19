@@ -1,0 +1,16 @@
+{
+  "name": "generator-storm",
+  "version": "1.0.0",
+  "description": "The Storm ID Front-end Generator",
+  "files": [
+    "app"
+  ],
+  "keywords": [
+    "yeoman-generator"
+  ],
+  "author": "Ryan Smith",
+  "license": "ISC",
+  "dependencies": {
+    "yeoman-generator": "^0.23.3"
+  }
+}
