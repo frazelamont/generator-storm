@@ -16,6 +16,13 @@ module.exports = generators.Base.extend({
 
     writing: {
 
+        packageJSON: function () {
+            this.fs.copyTpl(
+                this.templatePath('package.json'),
+                this.destinationPath('package.json')
+            );
+        },
+
         gulpfile: function () {
             this.fs.copyTpl(
                 this.templatePath('gulpfile.js'),
@@ -25,13 +32,6 @@ module.exports = generators.Base.extend({
                     name: this.pkg.name,
                     version: this.pkg.version
                 }
-            );
-        },
-
-        packageJSON: function () {
-            this.fs.copyTpl(
-                this.templatePath('_package.json'),
-                this.destinationPath('package.json')
             );
         },
 
