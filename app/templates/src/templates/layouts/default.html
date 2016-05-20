@@ -1,0 +1,15 @@
+{% include "../partials/doc-head.html" %}
+<body>
+    <a href="#content" class="btn-skip">Skip to content</a>
+    <a href="#navigation" class="btn-hamburger js-toggle" title="Navigation menu" aria-label="Navigation menu">Skip to navigation</a>
+    {% include "../partials/ui-header.html" %}
+    {% include "../partials/ui-navigation.html" %}
+    <main id="content">
+        <div class="small-12 col--centre">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    {% include "../partials/ui-footer.html" %}
+    <script src="{{assetPath}}/js/app.js"></script>
+</body>
+</html>
