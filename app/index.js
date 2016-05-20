@@ -181,6 +181,17 @@ module.exports = generators.Base.extend({
 
         },
 
+        javascript: function () {
+            this.fs.copyTpl(
+                this.templatePath('src/js/app.js'),
+                this.destinationPath('src/js/app.js')
+            );
+            this.fs.copyTpl(
+                this.templatePath('src/js/async/forrm.js'),
+                this.destinationPath('src/js/async/forrm.js')
+            );
+        },
+
         readme: function () {
             this.fs.copyTpl(
                 this.templatePath('README.md'),
@@ -192,9 +203,6 @@ module.exports = generators.Base.extend({
             mkdirp('src/img');
             mkdirp('src/fonts');
         }
-
-
     }
-
 
 });
