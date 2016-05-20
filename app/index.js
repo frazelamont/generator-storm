@@ -203,6 +203,10 @@ module.exports = generators.Base.extend({
             mkdirp('src/img');
             mkdirp('src/fonts');
         }
+    },
+
+    install: function () {
+        this.npmInstall();
     }
 
 });
