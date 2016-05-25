@@ -199,6 +199,21 @@ module.exports = generators.Base.extend({
             );
         },
 
+        configfiles: function () {
+            this.fs.copyTpl(
+                this.templatePath('_bowerrc'),
+                this.destinationPath('.bowerrc')
+            );
+            this.fs.copyTpl(
+                this.templatePath('_jshintrc'),
+                this.destinationPath('.jshintrc')
+            );
+            this.fs.copyTpl(
+                this.templatePath('_gitignore'),
+                this.destinationPath('.gitignore')
+            );
+        },
+
         misc: function () {
             mkdirp('src/img');
             mkdirp('src/fonts');
