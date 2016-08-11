@@ -1,5 +1,5 @@
 {
-  "name": "", 
+  "name": "",
   "private": true,
   "devDependencies": {
     "browser-sync": "^2.12.5",
@@ -43,10 +43,13 @@
     ]
   },
   "dependencies": {
+    "del": "^2.2.1",
     "dom-classlist": "^1.0.1",
     "fontfaceobserver": "^1.5.4",
+    "gulp-if": "^2.0.1",
     "load-script": "^1.0.0",
     "merge": "^1.2.0",
+    "nconf": "^0.8.4",
     "object-assign": "^4.0.1",
     "picturefill": "^3.0.1",
     "storm-attributelist": "^0.2.0",

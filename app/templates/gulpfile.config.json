@@ -1,0 +1,36 @@
+{
+    "paths": {
+        "src" : {
+            "css" :     "./src/scss/",
+            "js" :      "./src/js/",
+            "html":     "./src/templates/",
+            "img":      "./src/img/",
+            "fonts":    "./src/fonts/"
+        },
+        "dist": {
+            "base":     "./dist/",
+            "css" :     "./dist/css/",
+            "js" :      "./dist/js/",
+            "html":     "./dist/html/",
+            "img":      "./dist/img/",
+            "fonts":    "./dist/fonts/"
+        },
+        "deploy":       "../src/SDKTemplate/Content/"
+    },
+    "production": false,
+    "config" : {
+        "autoprefixer" : {
+            "browsers" : [
+                "ie >= 9",
+                "ie_mob >= 10",
+                "ff >= 20",
+                "chrome >= 4",
+                "safari >= 7",
+                "opera >= 23",
+                "ios >= 7",
+                "android >= 4.4",
+                "bb >= 10"
+            ]
+        }
+    }
+}
