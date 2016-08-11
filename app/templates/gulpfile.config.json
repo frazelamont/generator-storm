@@ -15,7 +15,7 @@
             "img":      "./dist/img/",
             "fonts":    "./dist/fonts/"
         },
-        "deploy":       "../src/SDKTemplate/Content/"
+        "deploy":       "../src/SDKTemplate.Web/Content/"
     },
     "production": false,
     "config" : {

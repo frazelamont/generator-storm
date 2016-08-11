@@ -182,8 +182,18 @@ gulp.task('fonts', function() {
         .pipe(gulp.dest(options.paths.dist.fonts));
 });
 
-/* Compress CSS */
-gulp.task('compress:css', function() {
+gulp.task('deploy:clean', function() {
+    return del(options.paths.deploy, { force: true });
+});
+
+gulp.task('deploy:copy', function() {
+    return gulp
+        .src(options.paths.dist.base +"**/*")
+        .pipe(gulp.dest(options.paths.deploy));
+});
+
+gulp.task('deploy', function() {
+    return runSequence('deploy:clean', 'deploy:copy');
 });
 
 /* Server with auto reload and browersync */
@@ -223,13 +233,10 @@ gulp.task('psi', function(cb) {
 /* Start task */
 gulp.task('start', ['html', 'css', 'js', 'img', 'fonts', 'serve']);
 
-/* The compress task */
-gulp.task('compress', ['compress:css']);
-
-/* Final build task including compression */
+/* Final build task */
 gulp.task('build', ['html', 'css', 'js', 'img', 'fonts']);
 
-gulp.task('ci', runSequence('clean', 'build', 'compress'));
+gulp.task('ci', runSequence('clean', 'build', 'deploy'));
 
 /* Default 'refresh' task */
 gulp.task('default', ['start']);
