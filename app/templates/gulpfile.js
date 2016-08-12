@@ -13,17 +13,11 @@ var gulp = require('gulp'),
     uglify = require('gulp-uglify'),
     rename = require('gulp-rename'),
     minifyCss = require('gulp-minify-css'),
-    swig = require('gulp-swig'),
-    frontMatter = require('gulp-front-matter'),
     data = require('gulp-data'),
-    pagespeed = require('psi'),
     extname = require('gulp-extname'),
     sourcemaps = require('gulp-sourcemaps'),
-    browserSync = require('browser-sync'),
-    reload = browserSync.reload,
     path = require('path'),
     browserify = require('browserify'),
-    watchify = require('watchify'),
     cache = require('gulp-cache'),
     imagemin = require('gulp-imagemin'),
     notify = require('gulp-notify'),
@@ -35,19 +29,15 @@ var gulp = require('gulp'),
     jshint = require('gulp-jshint'),
     nconf = require('nconf'),
     gulpif = require('gulp-if'),
+    gutil = require('gulp-util'),
     jshintConfig = pkg.jshintConfig;
 
-/* Set up the banner */
-var banner = [
-    '/**',
-    ' * @name ' + (pkg.name || "") + ': ' + (pkg.description || ""),
-    ' * @version ' + (pkg.version || '0.1.0') + ': ' + new Date().toUTCString(),
-    ' * @author ' + (pkg.author || 'Storm ID'),
-    ' * @license ' + (pkg.license || 'Storm ID'),
-    ' */',
-    ' '
-].join('\n');
-
+var pagespeed = require('psi'),
+    watchify = require('watchify'),
+    browserSync = require('browser-sync'),
+    reload = browserSync.reload,
+    swig = require('gulp-swig'),
+    frontMatter = require('gulp-front-matter');    
 
 // = Options
 //-----------------------------------------------------------------------------//
@@ -55,12 +45,22 @@ var banner = [
 var options = { paths: { }, production: false };
 nconf
     .argv()
+    .env(['CI', 'APPVEYOR_BUILD_VERSION'])
     .file({ file: 'gulpfile.config.json' });
 var options = nconf.get();
 
-/* Set the PSI variables */
-var publicUrl = '', //publicly accessible URL on your local machine, demo, staging, live...
-    psiStrategy = 'mobile'; //'mobile' or 'desktop'
+gutil.log(options);
+
+/* Set up the banner */
+var banner = [
+    '/**',
+    ' * @name ' + (pkg.name || "") + ': ' + (pkg.description || ""),
+    ' * @version ' + (options.APPVEYOR_BUILD_VERSION || '') + ': ' + new Date().toUTCString(),
+    ' * @author ' + (pkg.author || 'Storm ID'),
+    ' * @license ' + (pkg.license || 'Storm ID'),
+    ' */',
+    ' '
+].join('\n');
 
 /* Error notificaton*/
 var onError = function(err) {
@@ -129,22 +129,6 @@ gulp.task('js:async', function () {
 
 gulp.task('js', ['js:browserify', 'js:async']);
 
-/* Build the flat html */
-gulp.task('html', function(){
-    return gulp.src(options.paths.src.html + 'views/**/*.html')
-        .pipe(plumber({errorHandler: onError}))
-        .pipe(frontMatter({ property: 'data' }))
-        .pipe(data(function(file) {
-            return {'assetPath': options.paths.deploy};
-        }))
-        .pipe(swig({
-            defaults: {
-                cache: false
-            }
-        }))
-      .pipe(gulp.dest(options.paths.dist.html));
-});
-
 /* 
  * SASS > CSS
  * Build CSS from scss, prefix and add px values from rem
@@ -196,47 +180,61 @@ gulp.task('deploy', function() {
     return runSequence('deploy:clean', 'deploy:copy');
 });
 
+/* *** Development tasks *** */
+
+/* Build the flat html */
+gulp.task('html', function(){
+    return gulp.src(options.paths.src.html + 'views/**/*.html')
+        .pipe(plumber({errorHandler: onError}))
+        .pipe(frontMatter({ property: 'data' }))
+        .pipe(data(function(file) {
+            return {'assetPath': options.paths.deploy};
+        }))
+        .pipe(swig({
+            defaults: {
+                cache: false
+            }
+        }))
+    .pipe(gulp.dest(options.paths.dist.html));
+});
+
 /* Server with auto reload and browersync */
 gulp.task('serve', ['build'], function () {
-      browserSync({
+    browserSync({
         notify: false,
         // https: true,
         server: [options.paths.dist.base],
         tunnel: false
-      });
+    });
 
-      gulp.watch([options.paths.src.html + '**/*.html'], ['html', reload]);
-      gulp.watch([options.paths.src.css + '**/*.scss'], ['css', reload]);
-      gulp.watch([options.paths.src.img + '*'], ['img', reload]);
-      gulp.watch([options.paths.src.js + '**/*'], ['js', reload]);
+    gulp.watch([options.paths.src.html + '**/*.html'], ['html', reload]);
+    gulp.watch([options.paths.src.css + '**/*.scss'], ['css', reload]);
+    gulp.watch([options.paths.src.img + '*'], ['img', reload]);
+    gulp.watch([options.paths.src.js + '**/*'], ['js', reload]);
 });
 
 /* Watch */
 gulp.task('watch', function () {
-      gulp.watch([options.paths.src.html + '**/*.html'], ['html']);
-      gulp.watch([options.paths.src.css + '**/*.scss'], ['css']);
-      gulp.watch([options.paths.src.img + '**/*'], ['img']);
-      gulp.watch([options.paths.src.js + '**/*'], ['js']);
+    gulp.watch([options.paths.src.html + '**/*.html'], ['html']);
+    gulp.watch([options.paths.src.css + '**/*.scss'], ['css']);
+    gulp.watch([options.paths.src.img + '**/*'], ['img']);
+    gulp.watch([options.paths.src.js + '**/*'], ['js']);
 });
+
+/* Set the PSI variables */
+// var publicUrl = '', //publicly accessible URL on your local machine, demo, staging, live...
+//     psiStrategy = 'mobile'; //'mobile' or 'desktop'
 
 /* Page speed insights */
 gulp.task('psi', function(cb) {
-  pagespeed.output(publicUrl, {
-    strategy: psiStrategy,
-  }, cb);
+    return pagespeed.output(options.config.psi, cb);
 });
 
 
-/************************
- *  Task API
- ************************/
-/* Start task */
-gulp.task('start', ['html', 'css', 'js', 'img', 'fonts', 'serve']);
-
-/* Final build task */
-gulp.task('build', ['html', 'css', 'js', 'img', 'fonts']);
+gulp.task('build', ['css', 'js', 'img', 'fonts']);
 
 gulp.task('ci', runSequence('clean', 'build', 'deploy'));
 
-/* Default 'refresh' task */
+gulp.task('start', ['html', 'css', 'js', 'img', 'fonts', 'serve']);
+
 gulp.task('default', ['start']);

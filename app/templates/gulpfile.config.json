@@ -17,6 +17,8 @@
         },
         "deploy":       "../src/SDKTemplate.Web/Content/"
     },
+    "path" : "",
+    "CI" : false,
     "production": false,
     "config" : {
         "autoprefixer" : {
@@ -31,6 +33,12 @@
                 "android >= 4.4",
                 "bb >= 10"
             ]
+        },
+        "psi" : {
+            "publicUrl" : "",
+            "options" : {
+                "strategy" : "mobile"
+            }
         }
     }
 }
