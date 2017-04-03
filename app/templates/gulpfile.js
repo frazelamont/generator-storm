@@ -1,4 +1,4 @@
-// generated on <%= date %> using <%= name %> <%= version %>
+// generated on 2016-08-11 using generator-storm 1.0.0
 
 /*global require*/
 /* Require the gulp and node packages */
@@ -13,17 +13,11 @@ var gulp = require('gulp'),
     uglify = require('gulp-uglify'),
     rename = require('gulp-rename'),
     minifyCss = require('gulp-minify-css'),
-    swig = require('gulp-swig'),
-    frontMatter = require('gulp-front-matter'),
     data = require('gulp-data'),
-    pagespeed = require('psi'),
     extname = require('gulp-extname'),
     sourcemaps = require('gulp-sourcemaps'),
-    browserSync = require('browser-sync'),
-    reload = browserSync.reload,
     path = require('path'),
     browserify = require('browserify'),
-    watchify = require('watchify'),
     cache = require('gulp-cache'),
     imagemin = require('gulp-imagemin'),
     notify = require('gulp-notify'),
@@ -33,59 +27,40 @@ var gulp = require('gulp'),
     source = require('vinyl-source-stream'),
     buffer = require('vinyl-buffer'),
     jshint = require('gulp-jshint'),
+    nconf = require('nconf'),
+    gulpif = require('gulp-if'),
+    gutil = require('gulp-util'),
     jshintConfig = pkg.jshintConfig;
 
+var pagespeed = require('psi'),
+    watchify = require('watchify'),
+    browserSync = require('browser-sync'),
+    reload = browserSync.reload,
+    swig = require('gulp-swig'),
+    frontMatter = require('gulp-front-matter');    
+
+// = Options
+//-----------------------------------------------------------------------------//
+
+var options = { paths: { }, production: false };
+nconf
+    .argv()
+    .env(['CI', 'APPVEYOR_BUILD_VERSION'])
+    .file({ file: 'gulpfile.config.json' });
+var options = nconf.get();
+
+gutil.log(options);
 
 /* Set up the banner */
 var banner = [
     '/**',
-    ' * @name ' + pkg.name + ': ' + pkg.description,
-    ' * @version ' + pkg.version + ': ' + new Date().toUTCString(),
-    ' * @author ' + pkg.author,
-    ' * @license ' + pkg.license,
+    ' * @name ' + (pkg.name || "") + ': ' + (pkg.description || ""),
+    ' * @version ' + (options.APPVEYOR_BUILD_VERSION || '') + ': ' + new Date().toUTCString(),
+    ' * @author ' + (pkg.author || 'Storm ID'),
+    ' * @license ' + (pkg.license || 'Storm ID'),
     ' */',
     ' '
 ].join('\n');
-
-/* Autoprefixer settings */
-var AUTOPREFIXER_BROWSERS = [
-  'ie >= 9',
-  'ie_mob >= 10',
-  'ff >= 20',
-  'chrome >= 4',
-  'safari >= 7',
-  'opera >= 23',
-  'ios >= 7',
-  'android >= 4.4',
-  'bb >= 10'
-];
-
-/* Build destination */
-var outputDir = './build';
-
-/* Where CSS, JS, imgs are piped */
-var assetPath = '/content';
-
-/* Source files for the pipe */
-var src = {
-  css: './src/scss/',
-  js: './src/js/',
-  html: './src/templates/',
-    img: './src/img/'
-};
-
-/* Destination for the build */
-var dest = {
-  css: outputDir + assetPath + '/css/',
-  js:  outputDir + assetPath + '/js/',
-  html: outputDir,
-    img: outputDir + assetPath + '/img/',
-    fonts: outputDir + assetPath + '/fonts/'
-};
-
-/* Set the PSI variables */
-var publicUrl = '', //publicly accessible URL on your local machine, demo, staging, live...
-    psiStrategy = 'mobile'; //'mobile' or 'desktop'
 
 /* Error notificaton*/
 var onError = function(err) {
@@ -101,16 +76,38 @@ var onError = function(err) {
 /************************
  *  Task definitions 
  ************************/
+gulp.task('clean:js', function () {
+  return del(options.paths.dist.js);
+});
+
+gulp.task('clean:css', function () {
+  return del(options.paths.dist.css);
+});
+
+gulp.task('clean:html', function () {
+  return del(options.paths.dist.html);
+});
+
+gulp.task('clean:img', function () {
+  return del(options.paths.dist.img);
+});
+
+gulp.task('clean:fonts', function () {
+  return del(options.paths.dist.fonts);
+});
+
+gulp.task('clean',['clean:css', 'clean:js', 'clean:html', 'clean:img', 'clean:fonts']);
+
 /* Lint JS */
 gulp.task('lint', function() {
-  return gulp.src(src.js)
+  return gulp.src(options.paths.src.js)
     .pipe(jshint(jshintConfig))
     .pipe(jshint.reporter('default'));
 });
 
 gulp.task('js:browserify', function () {
   var b = browserify({
-    entries: src.js + 'app.js',
+    entries: options.paths.src.js + 'app.js',
     debug: true
   });
 
@@ -118,34 +115,19 @@ gulp.task('js:browserify', function () {
     .pipe(source('app.js'))
     .pipe(buffer())
     .pipe(sourcemaps.init({loadMaps: true}))
-    .pipe(uglify())
+    .pipe(gulpif(options.production, uglify()))
     .pipe(sourcemaps.write('./'))
-    .pipe(gulp.dest(dest.js));
+    .pipe(gulp.dest(options.paths.dist.js));
 });
 
 gulp.task('js:async', function () {
-    return gulp.src(src.js + 'async/**/*')
+    return gulp.src(options.paths.src.js + 'async/**/*')
       .pipe(uglify())
       .pipe(rename({suffix: '.min'}))
-      .pipe(gulp.dest(dest.js + 'async/'));
+      .pipe(gulp.dest(options.paths.dist.js + 'async/'));
 });
-gulp.task('js', ['js:browserify', 'js:async']);
 
-/* Build the flat html */
-gulp.task('html', function(){
-    return gulp.src(src.html + 'views/**/*.html')
-        .pipe(plumber({errorHandler: onError}))
-        .pipe(frontMatter({ property: 'data' }))
-        .pipe(data(function(file) {
-            return {'assetPath': assetPath};
-        }))
-        .pipe(swig({
-            defaults: {
-                cache: false
-            }
-        }))
-      .pipe(gulp.dest(dest.html));
-});
+gulp.task('js', ['js:browserify', 'js:async']);
 
 /* 
  * SASS > CSS
@@ -153,94 +135,106 @@ gulp.task('html', function(){
  *
  */
 gulp.task('sass', function () {
-    return gulp.src([src.css + '**/*.scss', '!' + src.css + '{fonts,kss}/*.*'])
+    return gulp.src([options.paths.src.css + '**/*.scss', '!' + options.paths.src.css + '{fonts,kss}/*.*'])
     .pipe(plumber({errorHandler: onError}))
-    .pipe(sourcemaps.init())
+    .pipe(gulpif(!options.production, sourcemaps.init()))
     .pipe(sass())
-    .pipe(autoprefixer(AUTOPREFIXER_BROWSERS))
+    .pipe(autoprefixer(options.config.autoprefixer))
     .pipe(pixrem())
+    .pipe(minifyCss())    
     .pipe(header(banner, {pkg : pkg}))
-    .pipe(sourcemaps.write())
-    .pipe(gulp.dest(dest.css));
+    .pipe(gulpif(!options.production, sourcemaps.write()))
+    .pipe(gulp.dest(options.paths.dist.css));
 });
 
 gulp.task('css', ['sass']);
 
 /* Optimize images */
 gulp.task('img', function () {
-    return gulp.src([src.img + '**/*'])
+    return gulp.src([options.paths.src.img + '**/*'])
         .pipe(imagemin({
           progressive: true,
           interlaced: true,
           svgoPlugins: [{removeViewBox: true}]
         }))
-        .pipe(gulp.dest(dest.img));
+        .pipe(gulp.dest(options.paths.dist.img));
 });
 
 /* Fonts */
-gulp.task('font', function() {
-    return gulp.src(src.fonts + '**/*.*')
-        .pipe(gulp.dest(dest.fonts));
+gulp.task('fonts', function() {
+    return gulp.src(options.paths.src.fonts + '**/*.*')
+        .pipe(gulp.dest(options.paths.dist.fonts));
 });
 
-/* Compress js */
-gulp.task('compress:js', function() {
-  return gulp.src(dest.js + 'app.js')
-    .pipe(uglify())
-    .pipe(rename('app.min.js'))
-    .pipe(gulp.dest(dest.js));
+gulp.task('deploy:clean', function() {
+    return del(options.paths.deploy, { force: true });
 });
 
-/* Compress CSS */
-gulp.task('compress:css', function() {
-  return gulp.src(dest.css + 'style.css')
-    .pipe(minifyCss())
-        .pipe(rename('style.min.css'))
-    .pipe(gulp.dest(dest.css));
+gulp.task('deploy:copy', function() {
+    return gulp
+        .src(options.paths.dist.base +"**/*")
+        .pipe(gulp.dest(options.paths.deploy));
+});
+
+gulp.task('deploy', function() {
+    return runSequence('deploy:clean', 'deploy:copy');
+});
+
+/* *** Development tasks *** */
+
+/* Build the flat html */
+gulp.task('html', function(){
+    return gulp.src(options.paths.src.html + 'views/**/*.html')
+        .pipe(plumber({errorHandler: onError}))
+        .pipe(frontMatter({ property: 'data' }))
+        .pipe(data(function(file) {
+            return {'assetPath': options.paths.deploy};
+        }))
+        .pipe(swig({
+            defaults: {
+                cache: false
+            }
+        }))
+    .pipe(gulp.dest(options.paths.dist.html));
 });
 
 /* Server with auto reload and browersync */
 gulp.task('serve', ['build'], function () {
-      browserSync({
+    browserSync({
         notify: false,
         // https: true,
-        server: [outputDir],
+        server: [options.paths.dist.base],
         tunnel: false
-      });
+    });
 
-      gulp.watch([src.html + '**/*.html'], ['html', reload]);
-      gulp.watch([src.css + '**/*.scss'], ['css', reload]);
-      gulp.watch([src.img + '*'], ['img', reload]);
-      gulp.watch([src.js + '**/*'], ['js', reload]);
+    gulp.watch([options.paths.src.html + '**/*.html'], ['html', reload]);
+    gulp.watch([options.paths.src.css + '**/*.scss'], ['css', reload]);
+    gulp.watch([options.paths.src.img + '*'], ['img', reload]);
+    gulp.watch([options.paths.src.js + '**/*'], ['js', reload]);
 });
 
 /* Watch */
 gulp.task('watch', function () {
-      gulp.watch([src.html + '**/*.html'], ['html']);
-      gulp.watch([src.css + '**/*.scss'], ['css']);
-      gulp.watch([src.img + '**/*'], ['img']);
-      gulp.watch([src.js + '**/*'], ['js']);
+    gulp.watch([options.paths.src.html + '**/*.html'], ['html']);
+    gulp.watch([options.paths.src.css + '**/*.scss'], ['css']);
+    gulp.watch([options.paths.src.img + '**/*'], ['img']);
+    gulp.watch([options.paths.src.js + '**/*'], ['js']);
 });
+
+/* Set the PSI variables */
+// var publicUrl = '', //publicly accessible URL on your local machine, demo, staging, live...
+//     psiStrategy = 'mobile'; //'mobile' or 'desktop'
 
 /* Page speed insights */
 gulp.task('psi', function(cb) {
-  pagespeed.output(publicUrl, {
-    strategy: psiStrategy,
-  }, cb);
+    return pagespeed.output(options.config.psi, cb);
 });
 
 
-/************************
- *  Task API
- ************************/
-/* Start task */
-gulp.task('start', ['html', 'css', 'js', 'img', 'font', 'serve']);
+gulp.task('build', ['css', 'js', 'img', 'fonts']);
 
-/* Final build task including compression */
-gulp.task('build', ['html', 'css', 'js', 'compress']);
+gulp.task('ci', runSequence('clean', 'build', 'deploy'));
 
-/* The compress task */
-gulp.task('compress', ['compress:css']);
+gulp.task('start', ['html', 'css', 'js', 'img', 'fonts', 'serve']);
 
-/* Default 'refresh' task */
 gulp.task('default', ['start']);
